@@ -1,0 +1,6 @@
+# Ignore all .zip files
+*.zip
+
+# Ignore all .json files
+*.json
+

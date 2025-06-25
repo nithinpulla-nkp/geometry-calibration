@@ -1,0 +1,4 @@
+numpy
+argparse
+opencv-python==4.5.4
+
