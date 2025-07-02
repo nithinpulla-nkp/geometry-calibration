@@ -4,3 +4,9 @@
 # Ignore all .json files
 *.json
 
+# macOS system file
+.DS_Store
+
+# Python bytecode cache
+__pycache__/
+

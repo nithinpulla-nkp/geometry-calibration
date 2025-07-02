@@ -1,167 +1,243 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-UB_Geometry.py
-
-Library module defining exactly the functions called by task1.py and task2.py.
-Do NOT add any I/O or top-level code here.
-"""
-
 import numpy as np
+from typing import List, Tuple
 import cv2
-from typing import Tuple
 
-# -------------------------------------------------------------------
-# Task 1: Euler rotation matrices
-# -------------------------------------------------------------------
+from cv2 import cvtColor, COLOR_BGR2GRAY, TERM_CRITERIA_EPS, TERM_CRITERIA_MAX_ITER, \
+    findChessboardCorners, cornerSubPix, drawChessboardCorners
+
+'''
+Please do Not change or add any imports. 
+Please do NOT read or write any file, or show any images in your final submission! 
+'''
+
+#task1
 
 def findRot_xyz2XYZ(alpha: float, beta: float, gamma: float) -> np.ndarray:
-    """
+    '''
     Args:
-        alpha, beta, gamma: rotation angles in degrees.
-    Returns:
-        3×3 matrix R = Rz(alpha) · Rx(beta) · Rz(gamma).
-    """
-    a = np.deg2rad(alpha)
-    b = np.deg2rad(beta)
-    g = np.deg2rad(gamma)
-    ca, sa = np.cos(a), np.sin(a)
-    cb, sb = np.cos(b), np.sin(b)
-    cg, sg = np.cos(g), np.sin(g)
+        alpha, beta, gamma: They are the rotation angles along x, y and z axis respectly.
+            Note that they are angles, not radians.
+    Return:
+        A 3x3 numpy array represents the rotation matrix from xyz to XYZ.
 
-    Rz1 = np.array([[ ca, -sa, 0],
-                    [ sa,  ca, 0],
-                    [  0,   0, 1]], dtype=float)
-    Rx1 = np.array([[1,   0,    0],
-                    [0,  cb,  -sb],
-                    [0,  sb,   cb]], dtype=float)
-    Rz2 = np.array([[ cg, -sg, 0],
-                    [ sg,  cg, 0],
-                    [  0,   0, 1]], dtype=float)
-    return Rz1 @ Rx1 @ Rz2
+    '''
+    rot_xyz2XYZ = np.eye(3).astype(float)
+
+    # Your implementation
+    alpha_r = np.radians(alpha)
+    beta_r = np.radians(beta)
+    gamma_r = np.radians(gamma)
+
+    rot_z_alpha = np.array([[np.cos(alpha_r), -np.sin(alpha_r), 0],
+                            [np.sin(alpha_r), np.cos(alpha_r), 0],
+                            [0, 0, 1]])
+    
+    rot_x_beta = np.array([[1, 0, 0],
+                           [0, np.cos(beta_r), -np.sin(beta_r)],
+                           [0, np.sin(beta_r), np.cos(beta_r)]])
+    
+    rot_z_gamma = np.array([[np.cos(gamma_r), -np.sin(gamma_r), 0],
+                            [np.sin(gamma_r), np.cos(gamma_r), 0],
+                            [0, 0, 1]])
+    
+    rot_xyz2XYZ = rot_z_alpha @ rot_xyz2XYZ
+    rot_xyz2XYZ = rot_x_beta @ rot_xyz2XYZ
+    rot_xyz2XYZ = rot_z_gamma @ rot_xyz2XYZ
+
+    return rot_xyz2XYZ
+
 
 def findRot_XYZ2xyz(alpha: float, beta: float, gamma: float) -> np.ndarray:
-    """
+    '''
     Args:
-        alpha, beta, gamma: same angles as above.
-    Returns:
-        R^{-1} = (Rz(alpha)·Rx(beta)·Rz(gamma))^T.
-    """
-    R = findRot_xyz2XYZ(alpha, beta, gamma)
-    return R.T
+        alpha, beta, gamma: They are the rotation angles of the 3 step respectly.
+            Note that they are angles, not radians.
+    Return:
+        A 3x3 numpy array represents the rotation matrix from XYZ to xyz.
 
-# -------------------------------------------------------------------
-# Task 2: Single-image checkerboard calibration via Homography
-# -------------------------------------------------------------------
+    '''
+    rot_XYZ2xyz = np.eye(3).astype(float)
+
+    # Your implementation
+    alpha_r = np.radians(alpha)
+    beta_r = np.radians(beta)
+    gamma_r = np.radians(gamma)
+
+    rot_z_alpha = np.array([[np.cos(alpha_r), -np.sin(alpha_r), 0],
+                            [np.sin(alpha_r), np.cos(alpha_r), 0],
+                            [0, 0, 1]])
+    
+    rot_x_beta = np.array([[1, 0, 0],
+                           [0, np.cos(beta_r), -np.sin(beta_r)],
+                           [0, np.sin(beta_r), np.cos(beta_r)]])
+    
+    rot_z_gamma = np.array([[np.cos(gamma_r), -np.sin(gamma_r), 0],
+                            [np.sin(gamma_r), np.cos(gamma_r), 0],
+                            [0, 0, 1]])
+    
+    rot_XYZ2xyz = rot_z_gamma.T @ rot_XYZ2xyz
+    rot_XYZ2xyz = rot_x_beta.T @ rot_XYZ2xyz
+    rot_XYZ2xyz = rot_z_alpha.T @ rot_XYZ2xyz
+
+    return rot_XYZ2xyz
+
+"""
+If your implementation requires implementing other functions. Please implement all the functions you design under here.
+But remember the above "findRot_xyz2XYZ()" and "findRot_XYZ2xyz()" functions are the only 2 function that will be called in task1.py.
+"""
+
+# Your functions for task1
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+# task2:
 
 def find_corner_img_coord(image: np.ndarray) -> np.ndarray:
-    """
-    Detect the 8×4 inner corners in 'image'.
-    Args:
-        image: H×W×3 BGR image array.
-    Returns:
-        (32×2) float32 array of (u,v) pixel coords, row-major.
-    Raises:
-        RuntimeError if not found.
-    """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    pattern = (8, 4)
-    flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE
-    found, corners = cv2.findChessboardCorners(gray, pattern, flags)
-    if not found:
-        raise RuntimeError("Checkerboard corners not found")
-    term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    corners = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), term)
-    return corners.reshape(-1, 2).astype(np.float32)
+    '''
+    Args: 
+        image: Input image of size MxNx3. M is the height of the image. N is the width of the image. 3 is the channel of the image.
+    Return:
+        A numpy array of size 32x2 that represents the 32 checkerboard corners' pixel coordinates. 
+        The pixel coordinate is defined such that the of top-left corner is (0, 0) and the bottom-right corner of the image is (N, M). 
+    '''
+    img_coord = np.zeros([32, 2], dtype=float)
+
+    # Your implementation
+    img_coord = np.zeros([36, 2], dtype=float)
+    cornersSize = (9, 4)
+    grayscaleImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, corners = cv2.findChessboardCorners(grayscaleImage, cornersSize)
+    indicesToRemove = [4, 13, 22, 31]
+    corners = np.delete(corners, indicesToRemove, axis=0)
+    img_coord = corners.reshape(32, 2)
+
+    return img_coord
+
 
 def find_corner_world_coord(img_coord: np.ndarray) -> np.ndarray:
-    """
-    Given img_coord of shape (32,2), produce the matching
-    world coords for an 8×4 grid on Z=0, 10 mm squares.
-    Returns:
-        (32×3) float32 array of (X,Y,0).
-    """
-    nx, ny, s = 8, 4, 10.0
-    pts3d = np.zeros((nx*ny, 3), dtype=np.float32)
-    for j in range(ny):
-        for i in range(nx):
-            idx = j*nx + i
-            pts3d[idx, 0] = i * s
-            pts3d[idx, 1] = j * s
-    return pts3d
+    '''
+    You can output the world coord manually or through some algorithms you design. Your output should be the same order with img_coord.
+    Args: 
+        img_coord: The image coordinate of the corners. Note that you do not required to use this as input, 
+        as long as your output is in the same order with img_coord.
+    Return:
+        A numpy array of size 32x3 that represents the 32 checkerboard corners' pixel coordinates. 
+        The world coordinate or each point should be in form of (x, y, z). 
+        The axis of the world coordinate system are given in the image. The output results should be in milimeters.
+    '''
+    world_coord = np.zeros([32, 3], dtype=float)
 
-def find_intrinsic(img_coord: np.ndarray,
-                   world_coord: np.ndarray
-                  ) -> Tuple[float, float, float, float]:
-    """
-    Homography-based intrinsic estimation:
-      Solve H from 2D–3D (Z=0) points, then
-      cx,cy = mean(u),mean(v),
-      fx = avg of focal estimates from H columns.
+    # Your implementation
+    world_coord[:] = [
+    [40,0,10], [30,0,10], [20,0,10], [10,0,10], [0,10,10], [0,20,10], [0,30,10], [0,40,10],
+    [40,0,20], [30,0,20], [20,0,20], [10,0,20], [0,10,20], [0,20,20], [0,30,20], [0,40,20],
+    [40,0,30], [30,0,30], [20,0,30], [10,0,30], [0,10,30], [0,20,30], [0,30,30], [0,40,30],
+    [40,0,40], [30,0,40], [20,0,40], [10,0,40], [0,10,40], [0,20,40], [0,30,40], [0,40,40]
+    ]
+
+    return world_coord
+
+
+def find_intrinsic(img_coord: np.ndarray, world_coord: np.ndarray) -> Tuple[float, float, float, float]:
+    '''
+    Use the image coordinates and world coordinates of the 32 point to calculate the intrinsic parameters.
+    Args: 
+        img_coord: The image coordinate of the 32 corners. This is a 32x2 numpy array.
+        world_coord: The world coordinate of the 32 corners. This is a 32x3 numpy array.
     Returns:
-        fx, fy, cx, cy
-    """
-    N = img_coord.shape[0]
+        fx, fy: Focal length. 
+        (cx, cy): Principal point of the camera (in pixel coordinate).
+    '''
+
+    fx: float = 0.0
+    fy: float = 0.0
+    cx: float = 0.0
+    cy: float = 0.0
+
+    # Your implementation
+
     A = []
-    for (u,v), (X,Y,_) in zip(img_coord, world_coord):
-        A.append([X, Y, 1, 0, 0, 0, -u*X, -u*Y, -u])
-        A.append([0, 0, 0, X, Y, 1, -v*X, -v*Y, -v])
-    A = np.array(A, dtype=float)
-    _, _, VT = np.linalg.svd(A)
-    h = VT[-1]
-    H = h.reshape(3,3)
+    for i in range(32):
+        X, Y, Z = world_coord[i]
+        x, y = img_coord[i]
+        A.append([X, Y, Z, 1, 0, 0, 0, 0, -x*X, -x*Y, -x*Z, -x])
+        A.append([0, 0, 0, 0, X, Y, Z, 1, -y*X, -y*Y, -y*Z, -y])
+    A = np.array(A)
+    _, _, Vt = np.linalg.svd(A)
+    last_row = Vt[-1]
+    M = last_row.reshape(3, 4)
+    m1 = M[0, :3]
+    m2 = M[1, :3]
+    m3 = M[2, :3]
 
-    cx = float(np.mean(img_coord[:,0]))
-    cy = float(np.mean(img_coord[:,1]))
+    cx = m1 @ m3
+    cy = m2 @ m3
+    fx = np.sqrt(m1 @ m1 - cx**2)
+    fy = np.sqrt(m2 @ m2 - cy**2)
 
-    h1 = H[:,0]
-    h2 = H[:,1]
-    def comp_f(hc):
-        dx = hc[0] - cx*hc[2]
-        dy = hc[1] - cy*hc[2]
-        hz = hc[2]
-        val = (dx*dx + dy*dy) / max(1e-8, (1 - hz*hz))
-        if val <= 0:
-            raise RuntimeError("Negative focal square")
-        return float(np.sqrt(val))
+    return fx, fy, cx, cy
 
-    f1 = comp_f(h1)
-    f2 = comp_f(h2)
-    f = (f1 + f2) / 2.0
-    return f, f, cx, cy
 
-def find_extrinsic(img_coord: np.ndarray,
-                   world_coord: np.ndarray
-                  ) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Decompose homography H into R,t given K from find_intrinsic().
+def find_extrinsic(img_coord: np.ndarray, world_coord: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    '''
+    Use the image coordinates, world coordinates of the 32 point and the intrinsic parameters to calculate the extrinsic parameters.
+    Args: 
+        img_coord: The image coordinate of the 32 corners. This is a 32x2 numpy array.
+        world_coord: The world coordinate of the 32 corners. This is a 32x3 numpy array.
     Returns:
-      R (3×3), t (3,)
-    """
-    N = img_coord.shape[0]
+        R: The rotation matrix of the extrinsic parameters. It is a 3x3 numpy array.
+        T: The translation matrix of the extrinsic parameters. It is a 1-dimensional numpy array with length of 3.
+    '''
+
+    R = np.eye(3).astype(float)
+    T = np.zeros(3, dtype=float)
+
+    # Your implementation
+
     A = []
-    for (u,v), (X,Y,_) in zip(img_coord, world_coord):
-        A.append([X, Y, 1, 0, 0, 0, -u*X, -u*Y, -u])
-        A.append([0, 0, 0, X, Y, 1, -v*X, -v*Y, -v])
-    A = np.array(A, dtype=float)
-    _, _, VT = np.linalg.svd(A)
-    H = VT[-1].reshape(3,3)
+    for i in range(32):
+        X, Y, Z = world_coord[i]
+        x, y = img_coord[i]
+        A.append([X, Y, Z, 1, 0, 0, 0, 0, -x*X, -x*Y, -x*Z, -x])
+        A.append([0, 0, 0, 0, X, Y, Z, 1, -y*X, -y*Y, -y*Z, -y])
+    A = np.array(A)
+    _, _, Vt = np.linalg.svd(A)
+    last_row = Vt[-1]
+    M = last_row.reshape(3, 4)
+    m1 = M[0, :3]
+    m2 = M[1, :3]
+    m3 = M[2, :3]
+    ox = m1 @ m3
+    oy = m2 @ m3
+    fx = np.sqrt(m1 @ m1 - ox**2)
+    fy = np.sqrt(m2 @ m2 - oy**2)
 
-    fx, fy, cx, cy = find_intrinsic(img_coord, world_coord)
-    K = np.array([[fx, 0, cx],
-                  [ 0, fy, cy],
-                  [ 0,  0,  1]], dtype=float)
-    K_inv = np.linalg.inv(K)
+    intrinsic_matrix = np.array([[fx, 0, ox],
+                                [0, fy, oy],
+                                [0, 0, 1]])
+    extrinsic_matrix = np.linalg.inv(intrinsic_matrix) @ M
+    
+    R = extrinsic_matrix[:, :3]
+    T = extrinsic_matrix[:, 3]
+    
+    return R, T
 
-    h1 = H[:,0]; h2 = H[:,1]; h3 = H[:,2]
-    lam = 1.0 / np.linalg.norm(K_inv.dot(h1))
-    r1 = lam * (K_inv.dot(h1))
-    r2 = lam * (K_inv.dot(h2))
-    r3 = np.cross(r1, r2)
-    t  = lam * (K_inv.dot(h3))
 
-    R = np.column_stack((r1, r2, r3))
-    U, _, Vt = np.linalg.svd(R)
-    R = U.dot(Vt)
+"""
+If your implementation requires implementing other functions. Please implement all the functions you design under here.
+But remember the above 4 functions are the only ones that will be called in task2.py.
+"""
 
-    return R, t
+# Your functions for task2
+
+
+
+
+
+
+
+#---------------------------------------------------------------------------------------------------------------------
