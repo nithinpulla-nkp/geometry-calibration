@@ -56,3 +56,15 @@ python validation.py
 - `task2.py`: Task 2 runner and validation  
 - `helper.py`: Utility functions for validation and submission
 - `validation.py`: Visual validation of camera calibration results
+
+## Disclaimer
+
+**This project is developed solely for educational purposes as part of CSE 473/573 Computer Vision coursework.**
+
+- **Academic Use Only**: This implementation is intended for learning fundamental computer vision concepts including 3D transformations, camera calibration, and geometric algorithms
+- **Educational Value**: If you're interested in understanding classical computer vision techniques, camera geometry, and calibration methods, you can learn through this structured implementation
+- **No Responsibility for Misuse**: I am not responsible for any misuse of this code, algorithms, or computational methods outside of educational contexts
+- **Portfolio & Academic Demonstration**: This project is designed for academic coursework, portfolio demonstration, and educational reference purposes only
+- **Proper Attribution**: Please respect academic integrity guidelines and provide appropriate citations when referencing this work
+
+This implementation demonstrates core computer vision principles and should be used as a learning resource for understanding geometric transformations and camera calibration fundamentals.
