@@ -1,5 +1,4 @@
 # 3D Geometry and Camera Calibration
-**CSE 473/573 Computer Vision Assignment 1 - Summer 2025**
 
 This project implements fundamental 3D geometry transformations and camera calibration algorithms using computer vision techniques.
 
@@ -49,19 +48,6 @@ python validation.py
 - Shows visual comparison of original vs reprojected corners
 - Computes reprojection error metrics
 
-## Submission
-
-Pack your submission (runs tests automatically):
-```bash
-sh pack_submission.sh <YourUBITName>
-```
-
-**Expected output:** `submission_<YourUBITName>.zip` containing:
-- `UB_Geometry.py` (your implementation)
-- `result_task1.json` (Task 1 results)  
-- `result_task2.json` (Task 2 results)
-
-Submit only the zip file.
 
 ## Code Structure
 
